@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI 자동 창문 개폐 앱</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI 자동 창문 개폐 앱</title>
+</head>
+<body>
+  <h2>AI 자동 창문 개폐 앱</h2>
+
+  <div id="weather">날씨 불러오는 중...</div>
+  <div id="decision"></div>
+
+  <button onclick="toggleMode()">모드 전환</button>
+  <button onclick="sendManual('OPEN')">열기(수동)</button>
+  <button onclick="sendManual('CLOSE')">닫기(수동)</button>
+
+  <script src="./app.js"></script>
+</body>
 </html>
