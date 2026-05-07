@@ -1,20 +1,278 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI 자동 창문 개폐 앱</title>
+  <title>AI 창문 제어 — 전남고 학업환경 최적화</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;display:flex;justify-content:center;padding:20px 16px}
+    .app{width:100%;max-width:440px}
+    .header{text-align:center;margin-bottom:18px}
+    .header h1{font-size:18px;font-weight:700;color:#1a2a3a;margin-bottom:2px}
+    .header p{font-size:12px;color:#6b7a8d}
+    .card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.07)}
+    .card-title{font-size:11px;font-weight:600;color:#8a95a3;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+    .banner{border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    .banner.open{background:#e6f7ee;color:#1a7a45}
+    .banner.close{background:#fdecea;color:#b02020}
+    .banner.hold{background:#f0f4f8;color:#4a5568}
+    .banner-icon{font-size:26px}
+    .banner-text{font-size:16px;font-weight:700}
+    .banner-reason{font-size:11px;opacity:.8;margin-top:2px}
+    .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .witem{background:#f7f9fb;border-radius:10px;padding:10px;text-align:center}
+    .witem .wlabel{font-size:10px;color:#8a95a3;margin-bottom:3px}
+    .witem .wval{font-size:20px;font-weight:700;color:#1a2a3a}
+    .witem .wunit{font-size:10px;color:#8a95a3}
+    .witem.warn{background:#fff8e6}
+    .witem.danger{background:#fdecea}
+    .witem.good{background:#e6f7ee}
+    .score-wrap{text-align:center;padding:6px 0}
+    .score-num{font-size:40px;font-weight:700}
+    .score-label{font-size:12px;color:#6b7a8d;margin-top:2px}
+    .score-bar-track{height:8px;background:#f0f4f8;border-radius:4px;overflow:hidden;margin:10px 0 12px}
+    .score-bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+    .check-list{display:flex;flex-direction:column;gap:6px}
+    .check-row{display:flex;align-items:center;gap:8px;font-size:12px}
+    .check-icon{font-size:14px;width:20px;text-align:center}
+    .check-label{flex:1;color:#4a5568}
+    .check-val{font-size:11px;font-weight:600;color:#6b7a8d}
+    .mode-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .mode-label{font-size:14px;font-weight:600;color:#1a2a3a}
+    .toggle-wrap{display:flex;background:#f0f4f8;border-radius:10px;padding:3px;gap:3px}
+    .tbtn{padding:5px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#8a95a3;transition:all .2s}
+    .tbtn.active{background:#fff;color:#185FA5;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .manual-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .btn-o{padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:#1a7a45;color:#fff;transition:transform .1s,opacity .2s}
+    .btn-c{padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:#b02020;color:#fff;transition:transform .1s,opacity .2s}
+    .btn-o:disabled,.btn-c:disabled{opacity:.35;cursor:not-allowed}
+    .btn-o:not(:disabled):active,.btn-c:not(:disabled):active{transform:scale(.97)}
+    .ble-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#4a5568;margin-bottom:10px}
+    .ble-dot{width:9px;height:9px;border-radius:50%;background:#ccc;flex-shrink:0}
+    .ble-dot.connected{background:#1a7a45}
+    .ble-dot.connecting{background:#e5a800;animation:pulse 1s infinite}
+    .ble-dot.disconnected{background:#b02020}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .btn-ble{width:100%;padding:11px;border-radius:10px;border:2px solid #185FA5;background:#fff;color:#185FA5;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+    .btn-ble:hover{background:#e6f0fb}
+    .btn-ble:disabled{opacity:.4;cursor:not-allowed}
+    .ble-warn{background:#fffbe6;border:1px solid #ffe066;border-radius:8px;padding:8px 12px;font-size:11px;color:#7a6000;line-height:1.6;margin-bottom:8px}
+    .log-box{background:#1a2a3a;border-radius:8px;padding:10px;max-height:120px;overflow-y:auto}
+    .log-line{font-size:11px;font-family:monospace;color:#a8c0d8;line-height:1.7}
+    .log-line.ok{color:#5de095}
+    .log-line.err{color:#f08080}
+    .log-line.cmd{color:#ffd080}
+    .log-line.info{color:#80c8ff}
+    .update-time{text-align:center;font-size:10px;color:#b0bac8;margin-top:6px}
+  </style>
 </head>
 <body>
-  <h2>AI 자동 창문 개폐 앱</h2>
+<div class="app">
+  <div class="header">
+    <h1>🪟 AI 창문 제어</h1>
+    <p>전남고등학교 · 학업환경 최적화 시스템</p>
+  </div>
 
-  <div id="weather">날씨 불러오는 중...</div>
-  <div id="decision"></div>
+  <div class="banner hold" id="banner">
+    <span class="banner-icon" id="banner-icon">⏳</span>
+    <div>
+      <div class="banner-text" id="banner-text">날씨 불러오는 중...</div>
+      <div class="banner-reason" id="banner-reason"></div>
+    </div>
+  </div>
 
-  <button onclick="toggleMode()">모드 전환</button>
-  <button onclick="sendManual('OPEN')">열기(수동)</button>
-  <button onclick="sendManual('CLOSE')">닫기(수동)</button>
+  <div class="card">
+    <div class="card-title">학업 환경 점수</div>
+    <div class="score-wrap">
+      <div class="score-num" id="score-num" style="color:#8a95a3">--</div>
+      <div class="score-label" id="score-label">점수 계산 중</div>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" id="score-bar" style="width:0%;background:#ccc"></div>
+      </div>
+    </div>
+    <div class="check-list" id="check-list">
+      <div class="check-row"><span class="check-icon">⏳</span><span class="check-label">날씨 정보 불러오는 중...</span></div>
+    </div>
+  </div>
 
-  <script src="./app.js"></script>
+  <div class="card">
+    <div class="card-title">실시간 날씨 (Open-Meteo)</div>
+    <div class="wgrid">
+      <div class="witem" id="wi-temp"><div class="wlabel">기온</div><div class="wval" id="w-temp">--</div><div class="wunit">°C</div></div>
+      <div class="witem" id="wi-dust"><div class="wlabel">미세먼지 PM10</div><div class="wval" id="w-dust">--</div><div class="wunit">µg/m³</div></div>
+      <div class="witem" id="wi-rain"><div class="wlabel">강수 여부</div><div class="wval" id="w-rain-icon">--</div><div class="wunit" id="w-rain-label"></div></div>
+      <div class="witem" id="wi-precip"><div class="wlabel">강수량</div><div class="wval" id="w-precip">--</div><div class="wunit">mm</div></div>
+    </div>
+    <div class="update-time" id="update-time">갱신 대기 중</div>
+  </div>
+
+  <div class="card">
+    <div class="mode-row">
+      <span class="mode-label">제어 모드</span>
+      <div class="toggle-wrap">
+        <button class="tbtn active" id="btn-auto"   onclick="setMode(true)">자동</button>
+        <button class="tbtn"        id="btn-manual" onclick="setMode(false)">수동</button>
+      </div>
+    </div>
+    <div class="manual-btns">
+      <button class="btn-o" id="btn-open"  onclick="manualSend('OPEN')"  disabled>🔓 창문 열기</button>
+      <button class="btn-c" id="btn-close" onclick="manualSend('CLOSE')" disabled>🔒 창문 닫기</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">micro:bit BLE 연결</div>
+    <div class="ble-row">
+      <div class="ble-dot disconnected" id="ble-dot"></div>
+      <span id="ble-text">연결 안 됨</span>
+    </div>
+    <div id="ble-warn-area"></div>
+    <button class="btn-ble" id="btn-ble" onclick="connectBLE()">📶 micro:bit 연결하기</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">제어 로그</div>
+    <div class="log-box" id="log-box">
+      <div class="log-line">시스템 시작. 날씨 정보를 불러옵니다...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LAT=35.1521, LON=126.8544;
+const R={DUST_DANGER:80,DUST_CAUTION:50,DUST_GOOD:30,TEMP_HOT:28,TEMP_COLD:10,TEMP_IDEAL_LO:18,TEMP_IDEAL_HI:26};
+let bleDevice=null,bleChar=null,isConnected=false,autoMode=true,lastCmd=null;
+const UART_SVC='6e400001-b5b4-f393-e0a9-e50e24dcca9e';
+const UART_TX ='6e400002-b5b4-f393-e0a9-e50e24dcca9e';
+
+function log(msg,type=''){
+  const box=document.getElementById('log-box');
+  const el=document.createElement('div');
+  el.className='log-line '+type;
+  el.textContent='['+new Date().toLocaleTimeString('ko-KR')+'] '+msg;
+  box.appendChild(el); box.scrollTop=box.scrollHeight;
+  if(box.children.length>80) box.removeChild(box.children[0]);
+}
+
+(function(){
+  if(!navigator.bluetooth){
+    document.getElementById('ble-warn-area').innerHTML='<div class="ble-warn">⚠️ Web Bluetooth 미지원 브라우저입니다.<br>PC Chrome 또는 Android Chrome에서 열어주세요.</div>';
+    document.getElementById('btn-ble').disabled=true;
+    log('Web Bluetooth 미지원','err');
+  }
+})();
+
+async function connectBLE(){
+  if(!navigator.bluetooth) return;
+  setBLE('connecting','연결 중...');
+  log('micro:bit 검색 시작...','ok');
+  try{
+    bleDevice=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'BBC micro:bit'}],optionalServices:[UART_SVC]});
+    bleDevice.addEventListener('gattserverdisconnected',()=>{isConnected=false;bleChar=null;setBLE('disconnected','연결 끊김');log('연결이 끊겼습니다','err');});
+    const srv=await bleDevice.gatt.connect();
+    const svc=await srv.getPrimaryService(UART_SVC);
+    bleChar=await svc.getCharacteristic(UART_TX);
+    isConnected=true;
+    setBLE('connected','연결됨: '+bleDevice.name);
+    log('BLE 연결 성공: '+bleDevice.name,'ok');
+    if(autoMode&&lastCmd&&lastCmd!=='HOLD') await sendBLE(lastCmd);
+  }catch(e){setBLE('disconnected','연결 실패');log('BLE 오류: '+e.message,'err');}
+}
+
+function setBLE(s,t){document.getElementById('ble-dot').className='ble-dot '+s;document.getElementById('ble-text').textContent=t;}
+
+async function sendBLE(cmd){
+  if(!isConnected||!bleChar){log('micro:bit 미연결','err');return;}
+  try{await bleChar.writeValue(new TextEncoder().encode(cmd+'\n'));log('[BLE 전송] '+cmd,'cmd');}
+  catch(e){log('전송 오류: '+e.message,'err');}
+}
+
+async function fetchWeather(){
+  try{
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=precipitation,pm10,temperature_2m`);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json(),c=d.current;
+    return{temp:c.temperature_2m,dust:c.pm10??0,precip:c.precipitation??0,rain:(c.precipitation??0)>0};
+  }catch(e){log('날씨 API 오류: '+e.message,'err');return null;}
+}
+
+function analyze(env){
+  const items=[];let score=100,cmd='HOLD',reason='';
+  if(env.rain){items.push({icon:'🌧️',text:'강수 감지 → 창문 닫기',val:env.precip.toFixed(1)+'mm',bad:true});score-=40;cmd='CLOSE';reason='비가 와서 창문을 닫습니다';}
+  else{items.push({icon:'☀️',text:'강수 없음',val:'맑음',bad:false});}
+  if(env.dust>=R.DUST_DANGER){items.push({icon:'😷',text:'미세먼지 위험 (WHO 기준 초과)',val:Math.round(env.dust)+'µg/m³',bad:true});score-=35;if(cmd==='HOLD'){cmd='CLOSE';reason='미세먼지가 위험 수준입니다';}}
+  else if(env.dust>=R.DUST_CAUTION){items.push({icon:'😐',text:'미세먼지 주의',val:Math.round(env.dust)+'µg/m³',bad:true});score-=15;}
+  else if(env.dust<=R.DUST_GOOD){items.push({icon:'✅',text:'미세먼지 쾌적',val:Math.round(env.dust)+'µg/m³',bad:false});score+=5;}
+  else{items.push({icon:'🟡',text:'미세먼지 보통',val:Math.round(env.dust)+'µg/m³',bad:false});}
+  if(env.temp<=R.TEMP_COLD){items.push({icon:'🥶',text:'기온 낮음 — 집중력 저하 가능',val:env.temp.toFixed(1)+'°C',bad:true});score-=20;if(cmd==='HOLD'){cmd='CLOSE';reason='기온이 너무 낮습니다';}}
+  else if(env.temp>=R.TEMP_HOT){items.push({icon:'🥵',text:'기온 높음 — 환기 권장',val:env.temp.toFixed(1)+'°C',bad:true});score-=10;if(cmd==='HOLD'&&env.dust<R.DUST_CAUTION){cmd='OPEN';reason='더워서 환기가 필요합니다';}}
+  else if(env.temp>=R.TEMP_IDEAL_LO&&env.temp<=R.TEMP_IDEAL_HI){items.push({icon:'🌡️',text:'최적 학습 온도 (18~26°C)',val:env.temp.toFixed(1)+'°C',bad:false});score+=5;}
+  else{items.push({icon:'🌡️',text:'기온 양호',val:env.temp.toFixed(1)+'°C',bad:false});}
+  if(cmd==='HOLD'&&!env.rain&&env.dust<=R.DUST_GOOD){cmd='OPEN';reason='공기가 쾌적해 환기합니다';}
+  if(cmd==='HOLD') reason='현재 상태를 유지합니다';
+  score=Math.min(100,Math.max(0,score));
+  return{cmd,reason,score,items};
+}
+
+function updateWeatherUI(env){
+  const setW=(id,wiId,val,cls)=>{document.getElementById(id).textContent=val;document.getElementById(wiId).className='witem'+(cls?' '+cls:'');};
+  setW('w-temp','wi-temp',env.temp.toFixed(1),env.temp>=R.TEMP_HOT||env.temp<=R.TEMP_COLD?'danger':(env.temp>=R.TEMP_IDEAL_LO&&env.temp<=R.TEMP_IDEAL_HI)?'good':'');
+  setW('w-dust','wi-dust',Math.round(env.dust),env.dust>=R.DUST_DANGER?'danger':env.dust>=R.DUST_CAUTION?'warn':env.dust<=R.DUST_GOOD?'good':'');
+  document.getElementById('w-rain-icon').textContent=env.rain?'🌧️':'☀️';
+  document.getElementById('w-rain-label').textContent=env.rain?'비 옴':'맑음';
+  document.getElementById('wi-rain').className='witem'+(env.rain?' danger':' good');
+  setW('w-precip','wi-precip',env.precip.toFixed(1),'');
+  document.getElementById('update-time').textContent='마지막 갱신: '+new Date().toLocaleTimeString('ko-KR');
+}
+
+function updateScoreUI(score,items){
+  const n=document.getElementById('score-num'),l=document.getElementById('score-label'),b=document.getElementById('score-bar');
+  n.textContent=score+'점';
+  if(score>=80){n.style.color='#1a7a45';l.textContent='학업 환경 우수 — 집중력 유지에 좋습니다';b.style.background='#1a7a45';}
+  else if(score>=60){n.style.color='#b07000';l.textContent='학업 환경 보통 — 환기 여부 확인 권장';b.style.background='#e5a800';}
+  else{n.style.color='#b02020';l.textContent='학업 환경 나쁨 — 창문 닫기 권장';b.style.background='#b02020';}
+  b.style.width=score+'%';
+  document.getElementById('check-list').innerHTML=items.map(c=>
+    `<div class="check-row"><span class="check-icon">${c.icon}</span><span class="check-label" style="color:${c.bad?'#b02020':'#1a7a45'}">${c.text}</span><span class="check-val">${c.val}</span></div>`
+  ).join('');
+}
+
+function updateBannerUI(cmd,reason){
+  const b=document.getElementById('banner');
+  document.getElementById('banner-icon').textContent=cmd==='OPEN'?'🔓':cmd==='CLOSE'?'🔒':'↔️';
+  document.getElementById('banner-text').textContent=cmd==='OPEN'?'AI 판단: 창문 열기':cmd==='CLOSE'?'AI 판단: 창문 닫기':'AI 판단: 현재 상태 유지';
+  document.getElementById('banner-reason').textContent=reason;
+  b.className='banner '+(cmd==='OPEN'?'open':cmd==='CLOSE'?'close':'hold');
+}
+
+async function updateLoop(){
+  const env=await fetchWeather(); if(!env) return;
+  updateWeatherUI(env);
+  const{cmd,reason,score,items}=analyze(env);
+  updateScoreUI(score,items); updateBannerUI(cmd,reason);
+  log(`날씨 갱신 — ${env.temp.toFixed(1)}°C / PM10 ${Math.round(env.dust)} / ${env.rain?'비':'맑음'} / 점수 ${score}점`,'info');
+  if(!autoMode) return;
+  if(cmd!==lastCmd){lastCmd=cmd;if(cmd!=='HOLD') await sendBLE(cmd);log(`자동 제어: ${cmd} (${reason})`,'cmd');}
+}
+
+function setMode(isAuto){
+  autoMode=isAuto;
+  document.getElementById('btn-auto').classList.toggle('active',isAuto);
+  document.getElementById('btn-manual').classList.toggle('active',!isAuto);
+  document.getElementById('btn-open').disabled=isAuto;
+  document.getElementById('btn-close').disabled=isAuto;
+  log(isAuto?'자동 모드':'수동 모드');
+}
+
+async function manualSend(cmd){
+  if(autoMode) return;
+  updateBannerUI(cmd,cmd==='OPEN'?'수동으로 창문을 엽니다':'수동으로 창문을 닫습니다');
+  await sendBLE(cmd);
+}
+
+updateLoop();
+setInterval(updateLoop,600000);
+</script>
 </body>
 </html>
